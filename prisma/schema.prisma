@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(USER)
+  isOrganizer   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  events        Event[]   @relation("EventOrganizer")
+  comments      Comment[]
+}
+
+enum UserRole {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+model Event {
+  id            String      @id @default(cuid())
+  title         String
+  description   String
+  location      String
+  date          DateTime
+  imageUrl      String?
+  status        EventStatus @default(PENDING)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  organizerId   String
+  organizer     User        @relation("EventOrganizer", fields: [organizerId], references: [id])
+  comments      Comment[]
+  
+  @@index([status])
+  @@index([date])
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Comment {
+  id              String         @id @default(cuid())
+  content         String
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationResult String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  
+  eventId         String
+  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  @@index([eventId])
+  @@index([moderationStatus])
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
